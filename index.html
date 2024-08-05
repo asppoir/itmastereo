@@ -1,11 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-<title>Page Title</title>
+    <meta charset="UTF-8">
+    <title>Title</title>
 </head>
+
 <body>
-
-<h1>This is a Heading</h1>
-
+  <embed src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PgoKPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxjaXJjbGU+PC9jaXJjbGU+CgogIDxzY3JpcHQgdHlwZT0idGV4dC9qYXZhc2NyaXB0Ij4KICAgIDwhW0NEQVRBWwogICAgICBwYXJlbnQud2luZG93LnBvc3RNZXNzYWdlKCJodHRwczovL3d3dy5mYWNlYm9vay5jb20vIiwgIioiKTsKICAgIF1dPgogIDwvc2NyaXB0Pgo8L3N2Zz4K">
+  <script>
+    window.addEventListener("message", (event) => {
+        console.log(event)
+        if (event.data)
+            window.location = event.data;
+    }, false);
+  </script>
 </body>
+
 </html>
